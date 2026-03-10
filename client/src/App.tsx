@@ -5,6 +5,7 @@ function App() {
 
   const [groupName, setGroupName] = useState("");
   const [groups, setGroups] = useState<any[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
 
   const [memberName, setMemberName] = useState("");
 
@@ -44,6 +45,13 @@ function App() {
     fetchGroups();
   };
 
+  const deleteGroup = async (groupId: string) => {
+
+    await axios.delete(`http://127.0.0.1:5000/groups/${groupId}`)
+  
+    setSelectedGroup(null)
+    fetchGroups()
+  }
 
   const addExpense = async (groupId: string) => {
 
@@ -61,6 +69,13 @@ function App() {
 
     fetchGroups();
   };
+
+  const deleteExpense = async (expenseId: string) => {
+
+    await axios.delete(`http://127.0.0.1:5000/expenses/${expenseId}`)
+  
+    fetchGroups()
+  }
 
   const calculateBalances = async (groupId: string) => {
 
@@ -97,18 +112,34 @@ function App() {
 
 
       <h2>Groups</h2>
+        {groups.map((group) => (
+          <div key={group.id}>
 
+            <button onClick={() => setSelectedGroup(group)}>
+              {group.name}
+            </button>
 
-      {groups.map((group) => (
+          </div>
+        ))}
+        {selectedGroup && (
+          <div>
+            <h2>{selectedGroup.name}</h2>
+          </div>
+        )}
 
-        <div key={group.id} style={{ marginBottom: "30px" }}>
+        <button onClick={() => deleteGroup(selectedGroup.id)}>
+          Delete Group
+        </button>
 
-          <h3>{group.name}</h3>
+        {selectedGroup && (
 
+        <div style={{ marginTop: "30px" }}>
+
+          <h2>{selectedGroup.name}</h2>
 
           <strong>Members</strong>
 
-          {group.members.map((member: any) => (
+          {selectedGroup.members.map((member: any) => (
             <div key={member.id}>{member.name}</div>
           ))}
 
@@ -120,7 +151,7 @@ function App() {
               onChange={(e) => setMemberName(e.target.value)}
             />
 
-            <button onClick={() => addMember(group.id)}>
+            <button onClick={() => addMember(selectedGroup.id)}>
               Add Member
             </button>
 
@@ -129,12 +160,15 @@ function App() {
 
           <h4>Expenses</h4>
 
-          {group.expenses.map((expense: any) => (
+          {selectedGroup.expenses.map((expense: any) => (
             <div key={expense.id}>
               {expense.description} - ${expense.amount} (paid by {expense.paid_by})
-            </div>
-          ))}
 
+              <button onClick={() => deleteExpense(expense.id)}>
+                Delete
+              </button>
+          </div>
+        ))}
 
           <div>
 
@@ -158,7 +192,7 @@ function App() {
 
               <option value="">Select who paid</option>
 
-              {group.members.map((member: any) => (
+              {selectedGroup.members.map((member: any) => (
                 <option key={member.id} value={member.name}>
                   {member.name}
                 </option>
@@ -166,31 +200,30 @@ function App() {
 
             </select>
 
-            <button onClick={() => addExpense(group.id)}>
+            <button onClick={() => addExpense(selectedGroup.id)}>
               Add Expense
             </button>
+
+          </div>
+
+
+          <button onClick={() => calculateBalances(selectedGroup.id)}>
+            Calculate Balances
+          </button>
+
+          <h3>Balances</h3>
+
+          {transactions.map((t, i) => (
+            <div key={i}>
+              {t.from} owes {t.to} ${t.amount}
             </div>
-
-            <button onClick={() => calculateBalances(group.id)}>
-              Calculate Balances
-            </button>
-
-            <h3>Balances</h3>
-
-            {transactions.map((t, i) => (
-              <div key={i}>
-                {t.from} owes {t.to} ${t.amount}
-              </div>
-            ))}
-
-
+          ))}
 
         </div>
 
-      ))}
+        )}
 
-    </div>
-  );
-}
-
-export default App;
+      </div>
+        );
+      }
+    export default App;

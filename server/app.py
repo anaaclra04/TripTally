@@ -152,6 +152,23 @@ def get_groups():
 
     return jsonify(result)
 
+# Delete a Group
+@app.route("/groups/<group_id>", methods=["DELETE"])
+def delete_group(group_id):
+
+    group = Group.query.get(group_id)
+
+    if not group:
+        return jsonify({"error": "Group not found"}), 404
+
+    Member.query.filter_by(group_id=group_id).delete()
+    Expense.query.filter_by(group_id=group_id).delete()
+
+    db.session.delete(group)
+    db.session.commit()
+
+    return jsonify({"status": "group deleted"})
+
 # ADD MEMBER
 @app.route("/groups/<group_id>/members", methods=["POST"])
 def add_member(group_id):
@@ -188,6 +205,19 @@ def add_expense(group_id):
 
     return jsonify({"status": "expense added"})
 
+# Delete an expense
+@app.route("/expenses/<expense_id>", methods=["DELETE"])
+def delete_expense(expense_id):
+
+    expense = Expense.query.get(expense_id)
+
+    if not expense:
+        return jsonify({"error": "Expense not found"}), 404
+
+    db.session.delete(expense)
+    db.session.commit()
+
+    return jsonify({"status": "expense deleted"})
 
 # Balance
 @app.route("/groups/<group_id>/balances", methods=["GET"])

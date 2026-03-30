@@ -15,6 +15,7 @@ db = SQLAlchemy(app)
 class Group(db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, nullable=False)
+    color = db.Column(db.String, default="#2563eb")  # ← new
 
 class Member(db.Model):
     id = db.Column(db.String, primary_key=True)
@@ -75,22 +76,17 @@ def home():
 def calculate_balances(group):
 
     balances = {}
-
     members = group["members"]
 
     if len(members) == 0:
         return []
 
-    # initialize balances
     for member in members:
         balances[member["name"]] = 0
 
-    # process expenses
     for expense in group["expenses"]:
-
         amount = float(expense["amount"])
         paid_by = expense["paid_by"]
-
         split_amount = amount / len(members)
 
         for member in members:
@@ -108,7 +104,8 @@ def create_group():
 
     group = Group(
         id=str(uuid.uuid4()),
-        name=data["name"]
+        name=data["name"],
+        color=data.get("color", "#2563eb")  # ← accept color from frontend
     )
 
     db.session.add(group)
@@ -116,7 +113,8 @@ def create_group():
 
     return jsonify({
         "id": group.id,
-        "name": group.name
+        "name": group.name,
+        "color": group.color  # ← return it
     })
 
 
@@ -125,7 +123,6 @@ def create_group():
 def get_groups():
 
     groups = Group.query.all()
-
     result = []
 
     for g in groups:
@@ -136,6 +133,7 @@ def get_groups():
         result.append({
             "id": g.id,
             "name": g.name,
+            "color": g.color,  # ← include in every response
             "members": [
                 {"id": m.id, "name": m.name} for m in members
             ],
@@ -152,7 +150,7 @@ def get_groups():
 
     return jsonify(result)
 
-# Delete a Group
+# DELETE GROUP
 @app.route("/groups/<group_id>", methods=["DELETE"])
 def delete_group(group_id):
 
@@ -186,6 +184,20 @@ def add_member(group_id):
 
     return jsonify({"status": "member added"})
 
+# DELETE MEMBER
+@app.route("/groups/<group_id>/members/<member_id>", methods=["DELETE"])
+def delete_member(group_id, member_id):
+
+    member = Member.query.get(member_id)
+
+    if not member:
+        return jsonify({"error": "Member not found"}), 404
+
+    db.session.delete(member)
+    db.session.commit()
+
+    return jsonify({"status": "member deleted"})
+
 # ADD EXPENSE
 @app.route("/groups/<group_id>/expenses", methods=["POST"])
 def add_expense(group_id):
@@ -205,7 +217,7 @@ def add_expense(group_id):
 
     return jsonify({"status": "expense added"})
 
-# Delete an expense
+# DELETE EXPENSE
 @app.route("/expenses/<expense_id>", methods=["DELETE"])
 def delete_expense(expense_id):
 
@@ -219,7 +231,7 @@ def delete_expense(expense_id):
 
     return jsonify({"status": "expense deleted"})
 
-# Balance
+# BALANCES
 @app.route("/groups/<group_id>/balances", methods=["GET"])
 def get_balances(group_id):
 
@@ -247,23 +259,18 @@ def get_balances(group_id):
         "transactions": transactions
     })
 
-# Receipt Scanning
+# RECEIPT SCANNING
 @app.route("/scan-receipt", methods=["POST"])
 def scan_receipt():
 
     file = request.files["receipt"]
-
     image = Image.open(file)
-
     text = pytesseract.image_to_string(image)
-
     total = None
 
     for line in text.split("\n"):
         if "total" in line.lower():
-
             numbers = [s for s in line.split() if s.replace('.', '', 1).isdigit()]
-
             if numbers:
                 total = numbers[-1]
 

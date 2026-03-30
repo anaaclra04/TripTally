@@ -58,3 +58,12 @@ Optional (recommended):
 ```bash
 git clone https://github.com/yourusername/triptally.git
 cd triptally
+
+## Backend Steps:
+cd server
+source venv/bin/activate
+python app.py
+
+##Frontend Steps:
+cd client
+npm run dev
